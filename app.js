@@ -546,18 +546,56 @@ function loadMonetagAd() {
 
 function showFallbackAd() {
   const container = document.getElementById('monetag-ad-container');
-  // Fallback placeholder for development
+  
+  // Check if we're on localhost or a live domain
+  const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+  
   container.innerHTML = `
     <div class="ad-placeholder">
       <div class="ad-placeholder-icon">???</div>
       <div style="font-weight:600;color:#60D9F9;">Demo Ad</div>
       <div>Please wait for the countdown to complete</div>
       <div style="font-size:11px;opacity:0.6;margin-top:8px;">
-        [Monetag zone ${CONFIG.MONETAG_ZONE} - Demo mode]<br>
-        <span style="color: #ffa500; font-weight: bold;">SDK loading - real ads coming soon...</span>
+        [Monetag zone ${CONFIG.MONETAG_ZONE}]<br>
+        ${isLocalhost 
+          ? '<span style="color: #ffa500; font-weight: bold;">Localhost - Real ads need live domain</span>' 
+          : '<span style="color: #ffa500; font-weight: bold;">SDK loading - Real ads may take time...</span>'
+        }<br>
+        <span style="color: #60D9F9;">Current domain: ${window.location.hostname}</span>
       </div>
+      ${!isLocalhost ? `
+        <button onclick="testMonetagFunction()" style="margin-top: 10px; padding: 5px 10px; background: #60D9F9; border: none; border-radius: 5px; color: white; font-size: 11px; cursor: pointer;">
+          Test Monetag Function
+        </button>
+      ` : ''}
     </div>
   `;
+}
+
+// Test function for debugging
+function testMonetagFunction() {
+  console.log('[Rainy] Testing Monetag function...');
+  console.log('window.show_10871393:', typeof window.show_10871393);
+  console.log('window.monetagQueue:', window.monetagQueue);
+  
+  if (typeof window.show_10871393 === 'function') {
+    console.log('Monetag function is available, trying to call...');
+    window.show_10871393({
+      type: 'inApp',
+      inAppSettings: {
+        frequency: 2,
+        capping: 0.1,
+        interval: 30,
+        timeout: 5,
+        everyPage: false
+      },
+      onReady: () => console.log('Test: Ad ready'),
+      onComplete: () => console.log('Test: Ad completed'),
+      onError: (err) => console.error('Test: Ad error:', err)
+    });
+  } else {
+    console.error('Monetag function not available');
+  }
 }
 
 function onAdTimerComplete(monetagConfirmed = false) {
