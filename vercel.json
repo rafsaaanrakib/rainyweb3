@@ -2,18 +2,46 @@
   "version": 2,
   "builds": [
     {
-      "src": "api/index.js",
+      "src": "api/auth.js",
+      "use": "@vercel/node"
+    },
+    {
+      "src": "api/ads.js",
+      "use": "@vercel/node"
+    },
+    {
+      "src": "api/user.js",
+      "use": "@vercel/node"
+    },
+    {
+      "src": "api/wallet.js",
+      "use": "@vercel/node"
+    },
+    {
+      "src": "api/admin.js",
       "use": "@vercel/node"
     }
   ],
   "routes": [
     {
-      "src": "/api/(.*)",
-      "dest": "api/index.js"
+      "src": "/api/auth/(.*)",
+      "dest": "api/auth.js"
     },
     {
-      "src": "/health",
-      "dest": "api/index.js"
+      "src": "/api/ads/(.*)",
+      "dest": "api/ads.js"
+    },
+    {
+      "src": "/api/user/(.*)",
+      "dest": "api/user.js"
+    },
+    {
+      "src": "/api/wallet/(.*)",
+      "dest": "api/wallet.js"
+    },
+    {
+      "src": "/api/admin/(.*)",
+      "dest": "api/admin.js"
     },
     {
       "src": "/(.*)",
@@ -21,7 +49,19 @@
     }
   ],
   "functions": {
-    "api/index.js": {
+    "api/auth.js": {
+      "maxDuration": 10
+    },
+    "api/ads.js": {
+      "maxDuration": 10
+    },
+    "api/user.js": {
+      "maxDuration": 10
+    },
+    "api/wallet.js": {
+      "maxDuration": 10
+    },
+    "api/admin.js": {
       "maxDuration": 10
     }
   }
