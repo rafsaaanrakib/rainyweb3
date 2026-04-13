@@ -5,10 +5,6 @@ const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 require('dotenv').config();
 
-// Import admin routes
-const adminRoutes = require('../admin');
-const { requireAdmin } = require('../auth');
-
 const app = express();
 
 // Middleware
@@ -27,20 +23,23 @@ app.use(rateLimit({
   message: { success: false, message: 'Too many requests' },
 }));
 
-// Initialize database before handling requests
-app.use(async (req, res, next) => {
-  try {
-    const { initializeDatabase } = require('../database');
-    await initializeDatabase();
-    next();
-  } catch (error) {
-    console.error('Database initialization failed:', error);
-    res.status(500).json({ success: false, message: 'Database initialization failed' });
+// Simple admin login
+app.post('/login', (req, res) => {
+  const { username, password } = req.body;
+  
+  if (username === 'admin' && password === (process.env.ADMIN_PASSWORD || 'rainy_admin_2024')) {
+    const jwt = require('jsonwebtoken');
+    const token = jwt.sign(
+      { adminId: 1, username: 'admin' }, 
+      process.env.JWT_SECRET || 'rainy_jwt_secret', 
+      { expiresIn: '7d' }
+    );
+    
+    res.json({ success: true, token });
+  } else {
+    res.status(401).json({ success: false, message: 'Invalid credentials' });
   }
 });
-
-// Routes
-app.use('/', adminRoutes);
 
 // Export for Vercel
 module.exports = app;

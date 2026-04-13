@@ -5,9 +5,6 @@ const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 require('dotenv').config();
 
-// Import auth routes
-const authRoutes = require('../auth');
-
 const app = express();
 
 // Middleware
@@ -26,20 +23,49 @@ app.use(rateLimit({
   message: { success: false, message: 'Too many requests' },
 }));
 
-// Initialize database before handling requests
-app.use(async (req, res, next) => {
-  try {
-    const { initializeDatabase } = require('../database');
-    await initializeDatabase();
-    next();
-  } catch (error) {
-    console.error('Database initialization failed:', error);
-    res.status(500).json({ success: false, message: 'Database initialization failed' });
-  }
+// Simple health check
+app.get('/health', (req, res) => {
+  res.json({ status: 'ok', timestamp: new Date() });
 });
 
-// Routes
-app.use('/', authRoutes);
+// Login endpoint
+app.post('/login', async (req, res) => {
+  try {
+    const { telegram_id, first_name, last_name, username, photo_url, init_data } = req.body;
+    
+    if (!telegram_id) {
+      return res.status(400).json({ success: false, message: 'Missing telegram_id' });
+    }
+
+    // Simple JWT token for demo (in production, validate Telegram initData)
+    const jwt = require('jsonwebtoken');
+    const token = jwt.sign(
+      { userId: telegram_id, telegramId: telegram_id }, 
+      process.env.JWT_SECRET || 'rainy_jwt_secret', 
+      { expiresIn: '7d' }
+    );
+
+    res.json({ 
+      success: true, 
+      token,
+      user: {
+        id: telegram_id,
+        telegram_id: telegram_id,
+        first_name: first_name || 'User',
+        last_name: last_name || '',
+        username: username || '',
+        photo_url: photo_url || '',
+        balance: 0,
+        total_earned: 0,
+        ads_today: 0,
+        ads_total: 0
+      }
+    });
+  } catch (error) {
+    console.error('Auth error:', error);
+    res.status(500).json({ success: false, message: 'Internal server error' });
+  }
+});
 
 // Export for Vercel
 module.exports = app;
