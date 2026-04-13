@@ -2,7 +2,7 @@
 
 // ─── CONFIG ─────────────────────────────────────────────
 const CONFIG = {
-  API_BASE: 'http://localhost:3000/api',  // Local backend URL
+  API_BASE: window.location.origin + '/api',  // Dynamic API URL
   REWARD_PER_AD: 0.50,
   AD_DURATION: 15,       // seconds user must watch
   COOLDOWN_SECONDS: 180, // 3 min between ads
