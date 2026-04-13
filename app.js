@@ -499,17 +499,54 @@ function loadMonetagAd() {
   }, 5000);
 
   try {
-    // The multi-ads script should automatically handle ads
-    // We just need to create a container and wait
-    console.log('[Rainy] Multi-ads script should handle ad loading automatically');
+    // Try to trigger the multi-ads script
+    // The script might need to be called manually
     
-    // Simulate ad completion after duration since we can't detect actual ad completion
-    setTimeout(() => {
-      clearTimeout(adReadyTimeout);
-      console.log('[Rainy] Ad duration completed - simulating completion');
-      clearInterval(state.adTimer);
-      onAdTimerComplete(true);
-    }, CONFIG.AD_DURATION * 1000);
+    // Method 1: Check if global ad function exists
+    if (window.showAd) {
+      console.log('[Rainy] Using window.showAd...');
+      window.showAd({
+        zone: CONFIG.MONETAG_ZONE,
+        container: container,
+        onReady: () => {
+          clearTimeout(adReadyTimeout);
+          console.log('[Rainy] Ad ready');
+          showToast('Real ad loaded!', 'success');
+        },
+        onComplete: () => {
+          clearTimeout(adReadyTimeout);
+          console.log('[Rainy] Ad completed');
+          clearInterval(state.adTimer);
+          onAdTimerComplete(true);
+        }
+      });
+    }
+    // Method 2: Try to inject ad script directly
+    else {
+      console.log('[Rainy] Injecting ad script directly...');
+      const adScript = document.createElement('script');
+      adScript.src = `https://quge5.com/88/tag.min.js?zone=${CONFIG.MONETAG_ZONE}&t=${Date.now()}`;
+      adScript.async = true;
+      adScript.onload = () => {
+        clearTimeout(adReadyTimeout);
+        console.log('[Rainy] Ad script loaded');
+        showToast('Ad loaded!', 'success');
+      };
+      adScript.onerror = () => {
+        clearTimeout(adReadyTimeout);
+        console.log('[Rainy] Ad script failed, using fallback');
+        showFallbackAd();
+      };
+      container.appendChild(adScript);
+      
+      // Auto-complete after duration
+      setTimeout(() => {
+        clearTimeout(adReadyTimeout);
+        console.log('[Rainy] Ad duration completed');
+        clearInterval(state.adTimer);
+        onAdTimerComplete(true);
+      }, CONFIG.AD_DURATION * 1000);
+    }
 
   } catch (error) {
     clearTimeout(adReadyTimeout);
