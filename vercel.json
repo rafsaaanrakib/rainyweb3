@@ -4,9 +4,33 @@
     {
       "src": "**/*",
       "use": "@vercel/static"
+    },
+    {
+      "src": "api/auth.js",
+      "use": "@vercel/node"
+    },
+    {
+      "src": "api/user.js",
+      "use": "@vercel/node"
+    },
+    {
+      "src": "api/ads.js",
+      "use": "@vercel/node"
     }
   ],
   "routes": [
+    {
+      "src": "/api/auth/(.*)",
+      "dest": "api/auth.js"
+    },
+    {
+      "src": "/api/user/(.*)",
+      "dest": "api/user.js"
+    },
+    {
+      "src": "/api/ads/(.*)",
+      "dest": "api/ads.js"
+    },
     {
       "src": "/(.*)",
       "dest": "/$1"
