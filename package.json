@@ -2,10 +2,10 @@
   "name": "rainy-backend",
   "version": "1.0.0",
   "description": "Rainy Telegram Mini App Backend",
-  "main": "server.js",
+  "main": "api/index.js",
   "scripts": {
-    "start": "node server.js",
-    "dev": "nodemon server.js",
+    "start": "node api/index.js",
+    "dev": "nodemon api/index.js",
     "build": "echo 'Build completed'",
     "setup": "node -e \"require('./database')\" && echo 'Database initialized'"
   },
