@@ -6,7 +6,8 @@
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js",
-    "setup": "node -e \"require('./models/database')\" && echo 'Database initialized'"
+    "build": "echo 'Build completed'",
+    "setup": "node -e \"require('./database')\" && echo 'Database initialized'"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
@@ -21,8 +22,5 @@
   },
   "devDependencies": {
     "nodemon": "^3.1.0"
-  },
-  "engines": {
-    "node": ">=18.0.0"
   }
 }
