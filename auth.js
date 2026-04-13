@@ -3,7 +3,7 @@ const express = require('express');
 const router = express.Router();
 const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
-const { db, getSetting } = require('./database');
+const { get, run, getSetting } = require('./database');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'rainy_jwt_secret_change_me';
 const BOT_TOKEN  = process.env.TELEGRAM_BOT_TOKEN || '';
@@ -60,26 +60,26 @@ router.post('/login', async (req, res) => {
   }
 
   // Upsert user
-  const existing = await db.get('SELECT * FROM users WHERE telegram_id = ?', [String(telegram_id)]);
+  const existing = await get('SELECT * FROM users WHERE telegram_id = ?', [String(telegram_id)]);
 
   if (existing) {
     if (existing.banned) {
       return res.status(403).json({ success: false, message: 'Account banned. Contact support.' });
     }
     // Update last_seen and profile
-    await db.run(`
+    await run(`
       UPDATE users SET first_name=?, last_name=?, username=?, photo_url=?, last_seen=CURRENT_TIMESTAMP
       WHERE telegram_id=?
     `, [first_name, last_name, username, photo_url, String(telegram_id)]);
   } else {
     // New user
-    await db.run(`
+    await run(`
       INSERT INTO users (telegram_id, first_name, last_name, username, photo_url)
       VALUES (?, ?, ?, ?, ?)
     `, [String(telegram_id), first_name, last_name, username, photo_url]);
   }
 
-  const user = await db.get('SELECT * FROM users WHERE telegram_id = ?', [String(telegram_id)]);
+  const user = await get('SELECT * FROM users WHERE telegram_id = ?', [String(telegram_id)]);
   const token = jwt.sign({ userId: user.id, telegramId: user.telegram_id }, JWT_SECRET, { expiresIn: '7d' });
 
   res.json({ success: true, token });
@@ -95,7 +95,7 @@ async function requireAuth(req, res, next) {
 
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
-    const user = await db.get('SELECT * FROM users WHERE id = ?', [decoded.userId]);
+    const user = await get('SELECT * FROM users WHERE id = ?', [decoded.userId]);
     
     if (!user || user.banned) {
       return res.status(401).json({ success: false, message: 'Invalid token or user banned' });
@@ -118,7 +118,7 @@ async function requireAdmin(req, res, next) {
 
   try {
     const decoded = jwt.verify(token, JWT_ADMIN_SECRET);
-    const admin = await db.get('SELECT * FROM admin_users WHERE id = ?', [decoded.adminId]);
+    const admin = await get('SELECT * FROM admin_users WHERE id = ?', [decoded.adminId]);
     
     if (!admin) {
       return res.status(401).json({ success: false, message: 'Invalid admin token' });

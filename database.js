@@ -2,16 +2,28 @@
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 
-const DB_PATH = process.env.DB_PATH || path.join(__dirname, '../rainy.db');
-const db = new sqlite3.Database(DB_PATH);
+// Use /tmp for Vercel serverless environment
+const DB_PATH = process.env.NODE_ENV === 'production' 
+  ? '/tmp/rainy.db' 
+  : (process.env.DB_PATH || path.join(__dirname, '../rainy.db'));
 
-// Enable WAL mode for better performance
-db.run('PRAGMA journal_mode = WAL');
-db.run('PRAGMA foreign_keys = ON');
+let db;
+
+// Initialize database connection
+function getDatabase() {
+  if (!db) {
+    db = new sqlite3.Database(DB_PATH);
+    // Enable WAL mode for better performance
+    db.run('PRAGMA journal_mode = WAL');
+    db.run('PRAGMA foreign_keys = ON');
+  }
+  return db;
+}
 
 // Initialize database schema
 function initializeDatabase() {
   return new Promise((resolve, reject) => {
+    const db = getDatabase();
     db.serialize(() => {
       // Users table
       db.run(`
@@ -151,10 +163,24 @@ async function setSetting(key, value) {
 initializeDatabase().catch(console.error);
 
 module.exports = {
-  db,
-  query,
-  run,
-  get,
+  query: (sql, params = []) => new Promise((resolve, reject) => {
+    getDatabase().all(sql, params, (err, rows) => {
+      if (err) reject(err);
+      else resolve(rows);
+    });
+  }),
+  run: (sql, params = []) => new Promise((resolve, reject) => {
+    getDatabase().run(sql, params, function(err) {
+      if (err) reject(err);
+      else resolve(this);
+    });
+  }),
+  get: (sql, params = []) => new Promise((resolve, reject) => {
+    getDatabase().get(sql, params, (err, row) => {
+      if (err) reject(err);
+      else resolve(row);
+    });
+  }),
   getSetting,
   setSetting
 };
