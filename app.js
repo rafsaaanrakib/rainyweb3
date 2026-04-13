@@ -7,7 +7,7 @@ const CONFIG = {
   AD_DURATION: 15,       // seconds user must watch
   COOLDOWN_SECONDS: 180, // 3 min between ads
   DAILY_LIMIT: 20,
-  MONETAG_ZONE: '10871393',  // Monetag Zone ID from .env
+  MONETAG_ZONE: '229482',  // New Monetag Zone ID
 };
 
 // ─── STATE ─────────────────────────────────────────────
