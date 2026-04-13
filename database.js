@@ -76,6 +76,16 @@ function initializeDatabase() {
         )
       `);
 
+      // Used nonces table
+      db.run(`
+        CREATE TABLE IF NOT EXISTS used_nonces (
+          id          INTEGER PRIMARY KEY AUTOINCREMENT,
+          nonce       TEXT UNIQUE NOT NULL,
+          user_id     INTEGER NOT NULL,
+          created_at  DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+
       // Settings table
       db.run(`
         CREATE TABLE IF NOT EXISTS settings (
@@ -103,10 +113,9 @@ function initializeDatabase() {
         ['cooldown_seconds', '180']
       ];
 
-      const insertSetting = db.prepare('INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)');
-      defaultSettings.forEach(([key, value]) => {
-        insertSetting.run(key, value);
-      });
+      for (const [key, value] of defaultSettings) {
+        db.run('INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)', [key, value]);
+      }
 
       // Create default admin user
       const bcrypt = require('bcryptjs');
