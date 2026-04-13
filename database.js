@@ -168,10 +168,8 @@ async function setSetting(key, value) {
   await run('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)', [key, value]);
 }
 
-// Initialize database on first run
-initializeDatabase().catch(console.error);
-
 module.exports = {
+  initializeDatabase,
   query: (sql, params = []) => new Promise((resolve, reject) => {
     getDatabase().all(sql, params, (err, rows) => {
       if (err) reject(err);
