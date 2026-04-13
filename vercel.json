@@ -1,5 +1,6 @@
 {
   "version": 2,
+  "comment": "Forcing redeploy",
   "builds": [
     {
       "src": "api/auth.js",
