@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Rainy Admin Panel</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #080d14; --card: #0f1923; --card2: #131d2a; --elevated: #1a2635;
+      --blue: #1A7BF5; --cyan: #60D9F9; --success: #22c55e; --danger: #ef4444;
+      --warning: #f59e0b; --border: rgba(96,217,249,0.1);
+      --text: #e8f0fe; --muted: #7a90b0; --dim: #3d5068;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; min-height: 100vh; }
+
+    /* LOGIN */
+    .login-screen {
+      min-height: 100vh; display: flex; align-items: center; justify-content: center;
+    }
+    .login-box {
+      background: var(--card); border: 1px solid var(--border); border-radius: 20px;
+      padding: 40px; width: 360px; text-align: center;
+    }
+    .login-logo { font-family: 'Syne', sans-serif; font-size: 28px; font-weight: 800; margin-bottom: 8px;
+      background: linear-gradient(135deg, var(--cyan), var(--blue)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .login-sub { color: var(--muted); font-size: 13px; margin-bottom: 28px; }
+    .login-input {
+      width: 100%; padding: 12px 16px; background: var(--card2); border: 1px solid var(--border);
+      border-radius: 10px; color: var(--text); font-size: 14px; margin-bottom: 12px;
+    }
+    .login-input:focus { outline: none; border-color: var(--blue); }
+    .login-btn {
+      width: 100%; padding: 13px; background: linear-gradient(135deg, var(--blue), #0f5cc7);
+      border: none; border-radius: 10px; color: #fff; font-family: 'Syne', sans-serif;
+      font-size: 15px; font-weight: 700; cursor: pointer;
+    }
+    .login-error { color: var(--danger); font-size: 13px; margin-top: 8px; }
+
+    /* LAYOUT */
+    .admin-layout { display: flex; min-height: 100vh; }
+    .sidebar {
+      width: 220px; background: var(--card); border-right: 1px solid var(--border);
+      padding: 24px 0; flex-shrink: 0; position: sticky; top: 0; height: 100vh;
+      display: flex; flex-direction: column;
+    }
+    .sidebar-logo { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 20px;
+      padding: 0 20px 24px; border-bottom: 1px solid var(--border); margin-bottom: 16px;
+      background: linear-gradient(135deg, var(--cyan), var(--blue)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .nav-item {
+      display: flex; align-items: center; gap: 10px; padding: 10px 20px;
+      cursor: pointer; color: var(--muted); font-size: 14px; transition: all 0.2s;
+      border-left: 2px solid transparent;
+    }
+    .nav-item:hover { background: var(--card2); color: var(--text); }
+    .nav-item.active { color: var(--cyan); border-left-color: var(--cyan); background: rgba(96,217,249,0.06); }
+    .nav-item svg { width: 16px; height: 16px; flex-shrink: 0; }
+
+    .main { flex: 1; padding: 28px; overflow-y: auto; }
+
+    /* HEADER */
+    .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
+    .page-title { font-family: 'Syne', sans-serif; font-size: 22px; font-weight: 800; }
+    .page-sub { font-size: 13px; color: var(--muted); margin-top: 2px; }
+    .refresh-btn {
+      padding: 8px 16px; background: var(--card2); border: 1px solid var(--border);
+      border-radius: 8px; color: var(--muted); font-size: 13px; cursor: pointer;
+    }
+    .refresh-btn:hover { color: var(--text); }
+
+    /* STATS GRID */
+    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 28px; }
+    .stat-card {
+      background: var(--card); border: 1px solid var(--border); border-radius: 14px;
+      padding: 18px 20px;
+    }
+    .stat-card .label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
+    .stat-card .value { font-family: 'Syne', sans-serif; font-size: 26px; font-weight: 800; }
+    .stat-card .change { font-size: 12px; margin-top: 4px; }
+    .stat-card.blue .value  { color: var(--cyan); }
+    .stat-card.green .value { color: var(--success); }
+    .stat-card.warn .value  { color: var(--warning); }
+    .stat-card.red .value   { color: var(--danger); }
+
+    /* TABLE */
+    .table-card {
+      background: var(--card); border: 1px solid var(--border); border-radius: 14px;
+      overflow: hidden; margin-bottom: 24px;
+    }
+    .table-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 16px 20px; border-bottom: 1px solid var(--border);
+    }
+    .table-title { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 15px; }
+    .search-input {
+      padding: 7px 12px; background: var(--card2); border: 1px solid var(--border);
+      border-radius: 8px; color: var(--text); font-size: 13px; width: 200px;
+    }
+    .search-input:focus { outline: none; border-color: var(--blue); }
+    table { width: 100%; border-collapse: collapse; }
+    th {
+      text-align: left; padding: 10px 20px; font-size: 11px; color: var(--muted);
+      text-transform: uppercase; letter-spacing: 0.8px; font-weight: 500;
+      border-bottom: 1px solid var(--border); background: var(--card2);
+    }
+    td { padding: 12px 20px; font-size: 13px; border-bottom: 1px solid rgba(255,255,255,0.04); }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: rgba(255,255,255,0.02); }
+
+    .badge {
+      display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 600;
+    }
+    .badge-green  { background: rgba(34,197,94,0.15); color: var(--success); }
+    .badge-red    { background: rgba(239,68,68,0.15); color: var(--danger); }
+    .badge-blue   { background: rgba(26,123,245,0.15); color: var(--blue); }
+    .badge-yellow { background: rgba(245,158,11,0.15); color: var(--warning); }
+
+    .action-btn {
+      padding: 4px 10px; border-radius: 6px; font-size: 12px; cursor: pointer;
+      border: 1px solid; transition: all 0.15s;
+    }
+    .action-btn.ban   { color: var(--danger); border-color: rgba(239,68,68,0.3); background: rgba(239,68,68,0.08); }
+    .action-btn.unban { color: var(--success); border-color: rgba(34,197,94,0.3); background: rgba(34,197,94,0.08); }
+    .action-btn.view  { color: var(--cyan); border-color: rgba(96,217,249,0.3); background: rgba(96,217,249,0.08); }
+    .action-btn:hover { opacity: 0.8; }
+
+    /* SETTINGS */
+    .settings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .setting-card {
+      background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 20px;
+    }
+    .setting-title { font-family: 'Syne', sans-serif; font-weight: 700; margin-bottom: 16px; }
+    .setting-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+    .setting-label { font-size: 13px; color: var(--muted); }
+    .setting-input {
+      width: 100px; padding: 7px 10px; background: var(--card2); border: 1px solid var(--border);
+      border-radius: 8px; color: var(--text); font-size: 14px; text-align: right;
+    }
+    .setting-input:focus { outline: none; border-color: var(--blue); }
+    .save-btn {
+      width: 100%; padding: 10px; background: var(--blue); border: none; border-radius: 10px;
+      color: #fff; font-family: 'Syne', sans-serif; font-weight: 700; font-size: 14px; cursor: pointer; margin-top: 8px;
+    }
+
+    /* PAGINATION */
+    .pagination { display: flex; gap: 8px; justify-content: center; padding: 16px; }
+    .page-btn {
+      padding: 6px 12px; background: var(--card2); border: 1px solid var(--border);
+      border-radius: 8px; color: var(--muted); font-size: 13px; cursor: pointer;
+    }
+    .page-btn.active { background: var(--blue); border-color: var(--blue); color: #fff; }
+
+    /* TOAST */
+    #admin-toast {
+      position: fixed; top: 20px; right: 20px;
+      background: var(--elevated); border: 1px solid var(--border);
+      border-radius: 10px; padding: 10px 18px; font-size: 14px;
+      z-index: 9999; display: none;
+    }
+    #admin-toast.show { display: block; animation: fadeIn 0.3s; }
+    #admin-toast.success { border-color: var(--success); color: var(--success); }
+    #admin-toast.error   { border-color: var(--danger); color: var(--danger); }
+    @keyframes fadeIn { from { opacity:0; transform:translateY(-8px); } to { opacity:1; transform:translateY(0); } }
+
+    .section { display: none; }
+    .section.active { display: block; }
+  </style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen" class="login-screen">
+  <div class="login-box">
+    <div class="login-logo">☁️ RAINY</div>
+    <div class="login-sub">Admin Panel — Authorized Access Only</div>
+    <input type="text" class="login-input" id="admin-user" placeholder="Username" />
+    <input type="password" class="login-input" id="admin-pass" placeholder="Password" />
+    <button class="login-btn" onclick="adminLogin()">Login</button>
+    <div class="login-error hidden" id="login-error">Invalid credentials</div>
+  </div>
+</div>
+
+<!-- ADMIN APP -->
+<div id="admin-app" class="admin-layout hidden">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">💧 RAINY</div>
+    <div class="nav-item active" onclick="navigate('dashboard')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+      Dashboard
+    </div>
+    <div class="nav-item" onclick="navigate('users')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      Users
+    </div>
+    <div class="nav-item" onclick="navigate('transactions')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      Transactions
+    </div>
+    <div class="nav-item" onclick="navigate('withdrawals')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+      Withdrawals
+    </div>
+    <div class="nav-item" onclick="navigate('fraud')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      Fraud Logs
+    </div>
+    <div class="nav-item" onclick="navigate('settings')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93A10 10 0 1 1 4.93 19.07"/><path d="M20.36 7.64a10 10 0 0 0-1.29-2.71"/></svg>
+      Settings
+    </div>
+  </aside>
+
+  <!-- MAIN CONTENT -->
+  <main class="main">
+
+    <!-- DASHBOARD -->
+    <div id="section-dashboard" class="section active">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Dashboard</div>
+          <div class="page-sub">Real-time Rainy platform overview</div>
+        </div>
+        <button class="refresh-btn" onclick="refreshDashboard()">↻ Refresh</button>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-card blue">
+          <div class="label">Total Users</div>
+          <div class="value" id="stat-users">—</div>
+          <div class="change" style="color:var(--success)" id="stat-users-new">— new today</div>
+        </div>
+        <div class="stat-card green">
+          <div class="label">Total $RAINY Distributed</div>
+          <div class="value" id="stat-total-rainy">—</div>
+        </div>
+        <div class="stat-card warn">
+          <div class="label">Ads Watched Today</div>
+          <div class="value" id="stat-ads-today">—</div>
+        </div>
+        <div class="stat-card red">
+          <div class="label">Flagged Accounts</div>
+          <div class="value" id="stat-flagged">—</div>
+        </div>
+        <div class="stat-card blue">
+          <div class="label">Pending Withdrawals</div>
+          <div class="value" id="stat-pending-wd">—</div>
+        </div>
+        <div class="stat-card green">
+          <div class="label">Active Today</div>
+          <div class="value" id="stat-active-today">—</div>
+        </div>
+      </div>
+
+      <div class="table-card">
+        <div class="table-header">
+          <div class="table-title">Recent Transactions</div>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>User</th><th>Type</th><th>Amount</th><th>Status</th><th>Time</th>
+            </tr>
+          </thead>
+          <tbody id="recent-tx-table">
+            <tr><td colspan="5" style="text-align:center;color:var(--muted);padding:30px">Loading...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- USERS -->
+    <div id="section-users" class="section">
+      <div class="page-header">
+        <div><div class="page-title">User Management</div></div>
+        <input type="text" class="search-input" placeholder="Search by name or ID..." oninput="searchUsers(this.value)" />
+      </div>
+      <div class="table-card">
+        <div class="table-header">
+          <div class="table-title">All Users</div>
+          <span id="user-count" style="color:var(--muted);font-size:13px"></span>
+        </div>
+        <table>
+          <thead>
+            <tr><th>ID</th><th>Name</th><th>Balance</th><th>Total Earned</th><th>Ads Today</th><th>Status</th><th>Actions</th></tr>
+          </thead>
+          <tbody id="users-table">
+            <tr><td colspan="7" style="text-align:center;color:var(--muted);padding:30px">Loading...</td></tr>
+          </tbody>
+        </table>
+        <div class="pagination" id="users-pagination"></div>
+      </div>
+    </div>
+
+    <!-- TRANSACTIONS -->
+    <div id="section-transactions" class="section">
+      <div class="page-header">
+        <div><div class="page-title">Transaction Logs</div></div>
+      </div>
+      <div class="table-card">
+        <div class="table-header"><div class="table-title">All Reward Transactions</div></div>
+        <table>
+          <thead>
+            <tr><th>TxID</th><th>User</th><th>Amount</th><th>IP</th><th>Ad Zone</th><th>Valid</th><th>Time</th></tr>
+          </thead>
+          <tbody id="tx-table">
+            <tr><td colspan="7" style="text-align:center;color:var(--muted);padding:30px">Loading...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- WITHDRAWALS -->
+    <div id="section-withdrawals" class="section">
+      <div class="page-header"><div><div class="page-title">Withdrawal Requests</div></div></div>
+      <div class="table-card">
+        <div class="table-header"><div class="table-title">Pending & Processed</div></div>
+        <table>
+          <thead>
+            <tr><th>ID</th><th>User</th><th>Address</th><th>Amount</th><th>Status</th><th>Requested</th><th>Actions</th></tr>
+          </thead>
+          <tbody id="wd-table">
+            <tr><td colspan="7" style="text-align:center;color:var(--muted);padding:30px">Loading...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- FRAUD LOGS -->
+    <div id="section-fraud" class="section">
+      <div class="page-header"><div><div class="page-title">Fraud Detection Logs</div></div></div>
+      <div class="table-card">
+        <div class="table-header"><div class="table-title">Flagged Events</div></div>
+        <table>
+          <thead>
+            <tr><th>User</th><th>Event Type</th><th>Details</th><th>IP</th><th>Time</th><th>Action</th></tr>
+          </thead>
+          <tbody id="fraud-table">
+            <tr><td colspan="6" style="text-align:center;color:var(--muted);padding:30px">Loading...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- SETTINGS -->
+    <div id="section-settings" class="section">
+      <div class="page-header"><div><div class="page-title">Platform Settings</div></div></div>
+      <div class="settings-grid">
+        <div class="setting-card">
+          <div class="setting-title">Reward Configuration</div>
+          <div class="setting-row">
+            <div class="setting-label">Reward per ad ($RAINY)</div>
+            <input type="number" class="setting-input" id="cfg-reward" value="0.50" step="0.01" />
+          </div>
+          <div class="setting-row">
+            <div class="setting-label">Daily ad limit</div>
+            <input type="number" class="setting-input" id="cfg-daily-limit" value="20" />
+          </div>
+          <div class="setting-row">
+            <div class="setting-label">Cooldown (seconds)</div>
+            <input type="number" class="setting-input" id="cfg-cooldown" value="180" />
+          </div>
+          <button class="save-btn" onclick="saveSettings('reward')">Save Reward Config</button>
+        </div>
+
+        <div class="setting-card">
+          <div class="setting-title">Anti-Fraud Settings</div>
+          <div class="setting-row">
+            <div class="setting-label">Min ad watch time (s)</div>
+            <input type="number" class="setting-input" id="cfg-min-watch" value="15" />
+          </div>
+          <div class="setting-row">
+            <div class="setting-label">Max requests/hour</div>
+            <input type="number" class="setting-input" id="cfg-rate-limit" value="30" />
+          </div>
+          <div class="setting-row">
+            <div class="setting-label">Auto-ban threshold</div>
+            <input type="number" class="setting-input" id="cfg-ban-threshold" value="5" />
+          </div>
+          <button class="save-btn" onclick="saveSettings('fraud')">Save Anti-Fraud Config</button>
+        </div>
+
+        <div class="setting-card">
+          <div class="setting-title">Withdrawal Settings</div>
+          <div class="setting-row">
+            <div class="setting-label">Minimum withdrawal</div>
+            <input type="number" class="setting-input" id="cfg-min-wd" value="10" />
+          </div>
+          <div class="setting-row">
+            <div class="setting-label">Withdrawals enabled</div>
+            <input type="text" class="setting-input" id="cfg-wd-enabled" value="false" />
+          </div>
+          <button class="save-btn" onclick="saveSettings('withdrawal')">Save Withdrawal Config</button>
+        </div>
+
+        <div class="setting-card">
+          <div class="setting-title">Monetag Config</div>
+          <div class="setting-row">
+            <div class="setting-label">Zone ID</div>
+            <input type="text" class="setting-input" id="cfg-monetag-zone" value="" placeholder="Zone ID" />
+          </div>
+          <div class="setting-row">
+            <div class="setting-label">Ad format</div>
+            <input type="text" class="setting-input" id="cfg-monetag-format" value="rewarded" />
+          </div>
+          <button class="save-btn" onclick="saveSettings('monetag')">Save Monetag Config</button>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<div id="admin-toast"></div>
+
+<script>
+const ADMIN_API = 'https://your-rainy-api.com/api/admin';
+let adminToken = sessionStorage.getItem('rainy_admin_token');
+let currentSection = 'dashboard';
+
+async function adminLogin() {
+  const user = document.getElementById('admin-user').value;
+  const pass = document.getElementById('admin-pass').value;
+  try {
+    const res = await fetch(`${ADMIN_API}/login`, {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ username: user, password: pass })
+    });
+    const data = await res.json();
+    if (data.token) {
+      adminToken = data.token;
+      sessionStorage.setItem('rainy_admin_token', adminToken);
+      showAdmin();
+    } else {
+      document.getElementById('login-error').classList.remove('hidden');
+    }
+  } catch {
+    // Dev: skip login for local testing
+    adminToken = 'dev';
+    showAdmin();
+  }
+}
+
+function showAdmin() {
+  document.getElementById('login-screen').classList.add('hidden');
+  document.getElementById('admin-app').classList.remove('hidden');
+  refreshDashboard();
+}
+
+if (adminToken) showAdmin();
+
+async function adminAPI(endpoint, method='GET', body=null) {
+  const opts = { method, headers: { 'Authorization': `Bearer ${adminToken}`, 'Content-Type': 'application/json' } };
+  if (body) opts.body = JSON.stringify(body);
+  const res = await fetch(`${ADMIN_API}${endpoint}`, opts);
+  return res.json();
+}
+
+function navigate(section) {
+  currentSection = section;
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById(`section-${section}`).classList.add('active');
+  event.currentTarget.classList.add('active');
+
+  if (section === 'dashboard') refreshDashboard();
+  else if (section === 'users') loadUsers();
+  else if (section === 'transactions') loadTransactions();
+  else if (section === 'withdrawals') loadWithdrawals();
+  else if (section === 'fraud') loadFraudLogs();
+  else if (section === 'settings') loadSettings();
+}
+
+async function refreshDashboard() {
+  try {
+    const data = await adminAPI('/stats');
+    document.getElementById('stat-users').textContent = data.total_users ?? '—';
+    document.getElementById('stat-users-new').textContent = `+${data.new_users_today ?? 0} today`;
+    document.getElementById('stat-total-rainy').textContent = (data.total_rainy_distributed ?? 0).toFixed(2);
+    document.getElementById('stat-ads-today').textContent = data.ads_watched_today ?? '—';
+    document.getElementById('stat-flagged').textContent = data.flagged_accounts ?? '—';
+    document.getElementById('stat-pending-wd').textContent = data.pending_withdrawals ?? '—';
+    document.getElementById('stat-active-today').textContent = data.active_users_today ?? '—';
+
+    const tbody = document.getElementById('recent-tx-table');
+    tbody.innerHTML = (data.recent_transactions || []).map(tx => `
+      <tr>
+        <td>${tx.username || tx.telegram_id}</td>
+        <td><span class="badge badge-blue">Ad Reward</span></td>
+        <td style="color:var(--success)">+${parseFloat(tx.amount).toFixed(2)} $RAINY</td>
+        <td><span class="badge badge-green">Valid</span></td>
+        <td style="color:var(--muted)">${new Date(tx.created_at).toLocaleString()}</td>
+      </tr>`).join('') || '<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:20px">No recent transactions</td></tr>';
+  } catch { adminToast('Failed to load stats', 'error'); }
+}
+
+async function loadUsers(page = 1, search = '') {
+  const data = await adminAPI(`/users?page=${page}&search=${encodeURIComponent(search)}`);
+  document.getElementById('user-count').textContent = `${data.total || 0} users`;
+  const tbody = document.getElementById('users-table');
+  tbody.innerHTML = (data.users || []).map(u => `
+    <tr>
+      <td style="color:var(--muted)">${u.telegram_id}</td>
+      <td>${u.first_name} ${u.last_name || ''} <span style="color:var(--muted)">@${u.username || ''}</span></td>
+      <td style="color:var(--cyan)">${parseFloat(u.balance).toFixed(2)}</td>
+      <td>${parseFloat(u.total_earned).toFixed(2)}</td>
+      <td>${u.ads_today || 0}</td>
+      <td><span class="badge ${u.banned ? 'badge-red' : 'badge-green'}">${u.banned ? 'Banned' : 'Active'}</span></td>
+      <td>
+        <button class="action-btn view" onclick="viewUser(${u.id})">View</button>
+        <button class="action-btn ${u.banned ? 'unban' : 'ban'}" onclick="toggleBan(${u.id}, ${u.banned})">${u.banned ? 'Unban' : 'Ban'}</button>
+      </td>
+    </tr>`).join('') || '<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:20px">No users found</td></tr>';
+}
+
+function searchUsers(q) { clearTimeout(window._ut); window._ut = setTimeout(() => loadUsers(1, q), 400); }
+
+async function toggleBan(userId, banned) {
+  await adminAPI(`/users/${userId}/ban`, 'POST', { banned: !banned });
+  adminToast(banned ? 'User unbanned' : 'User banned', 'success');
+  loadUsers();
+}
+
+function viewUser(id) { adminToast('User detail view — implement modal', ''); }
+
+async function loadTransactions() {
+  const data = await adminAPI('/transactions');
+  document.getElementById('tx-table').innerHTML = (data.transactions || []).map(tx => `
+    <tr>
+      <td style="color:var(--muted);font-size:11px">${tx.id}</td>
+      <td>${tx.username || tx.telegram_id}</td>
+      <td style="color:var(--success)">+${parseFloat(tx.amount).toFixed(2)}</td>
+      <td style="color:var(--muted)">${tx.ip || '—'}</td>
+      <td>${tx.ad_zone || '—'}</td>
+      <td><span class="badge ${tx.valid ? 'badge-green' : 'badge-red'}">${tx.valid ? 'Valid' : 'Invalid'}</span></td>
+      <td style="color:var(--muted)">${new Date(tx.created_at).toLocaleString()}</td>
+    </tr>`).join('') || '<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:20px">No transactions</td></tr>';
+}
+
+async function loadWithdrawals() {
+  const data = await adminAPI('/withdrawals');
+  document.getElementById('wd-table').innerHTML = (data.withdrawals || []).map(w => `
+    <tr>
+      <td style="color:var(--muted)">${w.id}</td>
+      <td>${w.username || w.telegram_id}</td>
+      <td style="font-size:11px;color:var(--muted)">${w.wallet_address}</td>
+      <td>${parseFloat(w.amount).toFixed(2)}</td>
+      <td><span class="badge badge-${w.status==='pending'?'yellow':w.status==='paid'?'green':'red'}">${w.status}</span></td>
+      <td style="color:var(--muted)">${new Date(w.created_at).toLocaleString()}</td>
+      <td>
+        ${w.status === 'pending' ? `
+          <button class="action-btn unban" onclick="processWithdrawal(${w.id},'paid')">Mark Paid</button>
+          <button class="action-btn ban" onclick="processWithdrawal(${w.id},'rejected')">Reject</button>
+        ` : '—'}
+      </td>
+    </tr>`).join('') || '<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:20px">No withdrawals</td></tr>';
+}
+
+async function processWithdrawal(id, status) {
+  await adminAPI(`/withdrawals/${id}`, 'PATCH', { status });
+  adminToast(`Withdrawal ${status}`, 'success');
+  loadWithdrawals();
+}
+
+async function loadFraudLogs() {
+  const data = await adminAPI('/fraud-logs');
+  document.getElementById('fraud-table').innerHTML = (data.logs || []).map(l => `
+    <tr>
+      <td>${l.telegram_id}</td>
+      <td><span class="badge badge-red">${l.event_type}</span></td>
+      <td style="color:var(--muted)">${l.details}</td>
+      <td>${l.ip || '—'}</td>
+      <td style="color:var(--muted)">${new Date(l.created_at).toLocaleString()}</td>
+      <td><button class="action-btn ban" onclick="banFromFraud(${l.user_id})">Ban User</button></td>
+    </tr>`).join('') || '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:20px">No fraud logs</td></tr>';
+}
+
+async function banFromFraud(userId) {
+  await adminAPI(`/users/${userId}/ban`, 'POST', { banned: true });
+  adminToast('User banned', 'success');
+  loadFraudLogs();
+}
+
+async function loadSettings() {
+  const data = await adminAPI('/settings');
+  if (!data) return;
+  document.getElementById('cfg-reward').value = data.reward_per_ad || 0.50;
+  document.getElementById('cfg-daily-limit').value = data.daily_limit || 20;
+  document.getElementById('cfg-cooldown').value = data.cooldown_seconds || 180;
+  document.getElementById('cfg-min-watch').value = data.min_watch_seconds || 15;
+  document.getElementById('cfg-rate-limit').value = data.rate_limit_per_hour || 30;
+  document.getElementById('cfg-ban-threshold').value = data.auto_ban_threshold || 5;
+  document.getElementById('cfg-min-wd').value = data.min_withdrawal || 10;
+  document.getElementById('cfg-wd-enabled').value = data.withdrawals_enabled || 'false';
+  document.getElementById('cfg-monetag-zone').value = data.monetag_zone || '';
+}
+
+async function saveSettings(group) {
+  const payload = {};
+  if (group === 'reward') {
+    payload.reward_per_ad = parseFloat(document.getElementById('cfg-reward').value);
+    payload.daily_limit = parseInt(document.getElementById('cfg-daily-limit').value);
+    payload.cooldown_seconds = parseInt(document.getElementById('cfg-cooldown').value);
+  } else if (group === 'fraud') {
+    payload.min_watch_seconds = parseInt(document.getElementById('cfg-min-watch').value);
+    payload.rate_limit_per_hour = parseInt(document.getElementById('cfg-rate-limit').value);
+    payload.auto_ban_threshold = parseInt(document.getElementById('cfg-ban-threshold').value);
+  } else if (group === 'withdrawal') {
+    payload.min_withdrawal = parseFloat(document.getElementById('cfg-min-wd').value);
+    payload.withdrawals_enabled = document.getElementById('cfg-wd-enabled').value;
+  } else if (group === 'monetag') {
+    payload.monetag_zone = document.getElementById('cfg-monetag-zone').value;
+    payload.monetag_format = document.getElementById('cfg-monetag-format').value;
+  }
+
+  await adminAPI('/settings', 'PATCH', payload);
+  adminToast('Settings saved ✓', 'success');
+}
+
+function adminToast(msg, type='') {
+  const el = document.getElementById('admin-toast');
+  el.textContent = msg;
+  el.className = 'show' + (type ? ' ' + type : '');
+  setTimeout(() => el.className = '', 3000);
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Rainy — Earn $RAINY</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+  <!-- Telegram WebApp SDK -->
+  <script>
+    // Try to load Telegram SDK with fallback
+    (function() {
+      const script = document.createElement('script');
+      script.src = 'https://telegram.org/js/telegram-web-app.js';
+      script.onerror = function() {
+        console.warn('[Rainy] Telegram SDK failed to load, will use dev mode');
+      };
+      script.onload = function() {
+        console.log('[Rainy] Telegram SDK loaded successfully');
+      };
+      document.head.appendChild(script);
+    })();
+  </script>
+</head>
+<body>
+  <div id="app">
+
+    <!-- LOADING SCREEN -->
+    <div id="loader" class="loader-screen">
+      <div class="loader-inner">
+        <div class="drop-logo">
+          <svg viewBox="0 0 60 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M30 5 C30 5 5 38 5 52 C5 67 16 75 30 75 C44 75 55 67 55 52 C55 38 30 5 30 5Z" fill="url(#dropGrad)"/>
+            <defs>
+              <linearGradient id="dropGrad" x1="30" y1="5" x2="30" y2="75" gradientUnits="userSpaceOnUse">
+                <stop offset="0%" stop-color="#60D9F9"/>
+                <stop offset="100%" stop-color="#1A7BF5"/>
+              </linearGradient>
+            </defs>
+          </svg>
+        </div>
+        <div class="loader-title">RAINY</div>
+        <div class="loader-spinner"><span></span></div>
+      </div>
+    </div>
+
+    <!-- MAIN APP -->
+    <div id="main-app" class="hidden">
+
+      <!-- HEADER -->
+      <header class="app-header">
+        <div class="header-left">
+          <div class="avatar" id="user-avatar">?</div>
+          <div class="user-info">
+            <span class="user-name" id="user-name">Loading...</span>
+            <span class="user-tag">@rainy member</span>
+          </div>
+        </div>
+        <div class="header-right">
+          <button class="icon-btn" onclick="showSection('wallet')" title="Wallet">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-4 0v2"/><line x1="12" y1="12" x2="12" y2="16"/></svg>
+          </button>
+        </div>
+      </header>
+
+      <!-- BALANCE CARD -->
+      <section class="balance-section">
+        <div class="balance-card">
+          <div class="rain-effect">
+            <span></span><span></span><span></span><span></span><span></span>
+            <span></span><span></span><span></span><span></span><span></span>
+          </div>
+          <div class="balance-label">Available Balance</div>
+          <div class="balance-amount">
+            <span class="drop-icon">💧</span>
+            <span id="balance-val">0.00</span>
+            <span class="balance-token">$RAINY</span>
+          </div>
+          <div class="balance-stats">
+            <div class="stat">
+              <div class="stat-val" id="earned-today">0.00</div>
+              <div class="stat-label">Today</div>
+            </div>
+            <div class="stat-divider"></div>
+            <div class="stat">
+              <div class="stat-val" id="total-earned">0.00</div>
+              <div class="stat-label">All Time</div>
+            </div>
+            <div class="stat-divider"></div>
+            <div class="stat">
+              <div class="stat-val" id="ads-watched">0</div>
+              <div class="stat-label">Ads Watched</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- AD SECTION -->
+      <section class="ad-section" id="home-section">
+        <div class="section-title">Earn Rewards</div>
+
+        <div class="earn-card">
+          <div class="earn-icon">🎬</div>
+          <div class="earn-info">
+            <div class="earn-title">Watch an Ad</div>
+            <div class="earn-desc">Complete a short ad to earn <strong>0.50 $RAINY</strong></div>
+          </div>
+          <div class="earn-reward">+0.50</div>
+        </div>
+
+        <!-- Cooldown timer -->
+        <div id="cooldown-bar" class="cooldown-bar hidden">
+          <div class="cooldown-label">Next ad available in</div>
+          <div class="cooldown-timer" id="cooldown-timer">0:00</div>
+          <div class="cooldown-track"><div class="cooldown-fill" id="cooldown-fill"></div></div>
+        </div>
+
+        <!-- Watch Ad Button -->
+        <button class="watch-btn" id="watch-btn" onclick="watchAd()">
+          <span class="btn-icon">▶</span>
+          <span class="btn-text">Watch Ad & Earn</span>
+          <span class="btn-badge">+0.50 $RAINY</span>
+        </button>
+
+        <div class="limit-info" id="limit-info">
+          <svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 0a8 8 0 1 0 0 16A8 8 0 0 0 8 0zm.75 4.5v4.25h-1.5V4.5h1.5zm0 5.75v1.5h-1.5v-1.5h1.5z"/></svg>
+          Max <span id="daily-limit-display">20</span> ads/day. <span id="ads-remaining">20</span> remaining today.
+        </div>
+      </section>
+
+      <!-- TRANSACTION HISTORY -->
+      <section class="history-section" id="history-section">
+        <div class="section-title">Recent Earnings</div>
+        <div id="tx-list" class="tx-list">
+          <div class="tx-empty">No transactions yet.<br>Watch your first ad to earn!</div>
+        </div>
+        <button class="load-more-btn hidden" id="load-more-btn" onclick="loadMoreTx()">Load more</button>
+      </section>
+
+      <!-- WALLET SECTION (hidden by default) -->
+      <section class="wallet-section hidden" id="wallet-section">
+        <button class="back-btn" onclick="showSection('home')">← Back</button>
+        <div class="section-title">Wallet & Withdrawal</div>
+
+        <div class="wallet-card">
+          <div class="wallet-balance-label">Total Balance</div>
+          <div class="wallet-balance-val"><span id="wallet-bal">0.00</span> $RAINY</div>
+        </div>
+
+        <div class="withdraw-form">
+          <div class="form-group">
+            <label>Withdrawal Address (TON / future chain)</label>
+            <input type="text" id="wallet-address" placeholder="Enter your wallet address" />
+          </div>
+          <div class="form-group">
+            <label>Amount ($RAINY)</label>
+            <input type="number" id="withdraw-amount" placeholder="Minimum 10.00" min="10" step="0.5" />
+          </div>
+          <button class="submit-btn" onclick="requestWithdrawal()">Request Withdrawal</button>
+          <div class="withdraw-note">⚠️ Withdrawals are processed manually. Min 10 $RAINY. Feature launches soon.</div>
+        </div>
+
+        <div class="withdraw-history">
+          <div class="section-title">Withdrawal History</div>
+          <div id="withdraw-list" class="tx-list">
+            <div class="tx-empty">No withdrawal requests yet.</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- BOTTOM NAV -->
+      <nav class="bottom-nav">
+        <button class="nav-btn active" id="nav-home" onclick="showSection('home')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+          <span>Home</span>
+        </button>
+        <button class="nav-btn" id="nav-history" onclick="showSection('history')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          <span>History</span>
+        </button>
+        <button class="nav-btn" id="nav-wallet" onclick="showSection('wallet')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-4 0v2"/></svg>
+          <span>Wallet</span>
+        </button>
+      </nav>
+
+    </div>
+
+    <!-- TOAST -->
+    <div id="toast" class="toast hidden"></div>
+
+    <!-- AD MODAL OVERLAY -->
+    <div id="ad-overlay" class="ad-overlay hidden">
+      <div class="ad-modal">
+        <div class="ad-header">
+          <span>Advertisement</span>
+          <div class="ad-progress-label"><span id="ad-seconds">15</span>s remaining</div>
+        </div>
+        <div class="ad-progress-track">
+          <div class="ad-progress-fill" id="ad-progress-fill"></div>
+        </div>
+        <div id="monetag-ad-container" class="monetag-container">
+          <!-- Monetag ad renders here -->
+          <div class="ad-placeholder">
+            <div class="ad-placeholder-icon">📺</div>
+            <div>Loading ad...</div>
+          </div>
+        </div>
+        <button class="ad-close-btn hidden" id="ad-close-btn" onclick="adCompleted()">
+          ✓ Collect 0.50 $RAINY
+        </button>
+        <button class="ad-skip-btn" onclick="skipAd()">✕ Skip (no reward)</button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Monetag SDK - Working Version -->
+<script>
+// Initialize Monetag SDK properly
+window.monetagQueue = window.monetagQueue || [];
+window.show_10871393 = function() {
+  window.monetagQueue.push(arguments);
+};
+
+// Load Monetag SDK
+(function() {
+  var script = document.createElement('script');
+  script.async = true;
+  script.src = 'https://libtl.com/sdk.js?zone=10871393';
+  script.onload = function() {
+    console.log('[Rainy] Monetag SDK loaded successfully');
+  };
+  script.onerror = function() {
+    console.error('[Rainy] Failed to load Monetag SDK');
+  };
+  document.head.appendChild(script);
+})();
+</script>
+
+  <script src="app.js"></script>
+</body>
+</html>
