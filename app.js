@@ -489,56 +489,93 @@ function loadMonetagAd() {
 
   console.log('[Rainy] Loading Monetag ad for zone:', CONFIG.MONETAG_ZONE);
   
-  // Test if Monetag function is available
-  console.log('[Rainy] Monetag function test:', {
-    show_10871393: typeof window.show_10871393,
-    monetagQueue: window.monetagQueue ? window.monetagQueue.length : 'not defined'
+  // Test Monetag SDK availability
+  console.log('[Rainy] Monetag SDK test:', {
+    monetag: typeof window.monetag,
+    monetagQueue: window.monetagQueue ? window.monetagQueue.length : 'not defined',
+    show_10871393: typeof window.show_10871393
   });
   
-  // Try to call Monetag function directly
-  try {
-    if (typeof window.show_10871393 === 'function') {
-      console.log('[Rainy] Calling Monetag function...');
-      
-      // Clear container for Monetag to render into
-      container.innerHTML = '';
+  // Clear container for Monetag to render into
+  container.innerHTML = '';
 
-      let adReadyTimeout = setTimeout(() => {
-        console.warn('[Rainy] Monetag ad did not become ready in 5 seconds, showing fallback.');
-        showFallbackAd();
-      }, 5000); // 5 seconds timeout
-      
-      window.show_10871393({
-        type: 'inApp',
-        inAppSettings: {
-          frequency: 2,
-          capping: 0.1,
-          interval: 30,
-          timeout: 5,
-          everyPage: false
-        },
+  let adReadyTimeout = setTimeout(() => {
+    console.warn('[Rainy] Monetag ad did not become ready in 5 seconds, showing fallback.');
+    showFallbackAd();
+  }, 5000);
+
+  // Try multiple Monetag approaches
+  try {
+    // Method 1: Using window.monetag.showAd (newer API)
+    if (window.monetag && window.monetag.showAd) {
+      console.log('[Rainy] Using window.monetag.showAd...');
+      window.monetag.showAd({
+        zoneId: parseInt(CONFIG.MONETAG_ZONE),
+        container: container,
+        type: 'interstitial',
         onReady: () => {
-          clearTimeout(adReadyTimeout); // Clear the timeout if ad is ready
+          clearTimeout(adReadyTimeout);
           console.log('[Rainy] Monetag ad ready - SDK should display ad now');
           showToast('Real Monetag ad loaded!', 'success');
         },
         onComplete: () => {
-          clearTimeout(adReadyTimeout); // Clear the timeout if ad completes
+          clearTimeout(adReadyTimeout);
           console.log('[Rainy] Monetag ad completed - REWARD EARNED!');
           clearInterval(state.adTimer);
           onAdTimerComplete(true);
         },
         onError: (err) => {
-          clearTimeout(adReadyTimeout); // Clear the timeout if ad errors
+          clearTimeout(adReadyTimeout);
           console.error('[Rainy] Monetag error:', err);
           showFallbackAd();
         }
       });
-    } else {
-      console.log('[Rainy] Monetag function not available, using demo');
+    }
+    // Method 2: Using zone-specific function (older API)
+    else if (typeof window.show_10871393 === 'function') {
+      console.log('[Rainy] Using window.show_10871393...');
+      window.show_10871393({
+        type: 'inApp',
+        container: container,
+        onReady: () => {
+          clearTimeout(adReadyTimeout);
+          console.log('[Rainy] Monetag ad ready - SDK should display ad now');
+          showToast('Real Monetag ad loaded!', 'success');
+        },
+        onComplete: () => {
+          clearTimeout(adReadyTimeout);
+          console.log('[Rainy] Monetag ad completed - REWARD EARNED!');
+          clearInterval(state.adTimer);
+          onAdTimerComplete(true);
+        },
+        onError: (err) => {
+          clearTimeout(adReadyTimeout);
+          console.error('[Rainy] Monetag error:', err);
+          showFallbackAd();
+        }
+      });
+    }
+    // Method 3: Using queue
+    else if (window.monetagQueue) {
+      console.log('[Rainy] Using monetagQueue...');
+      window.monetagQueue.push(['showAd', {
+        zoneId: parseInt(CONFIG.MONETAG_ZONE),
+        container: container,
+        type: 'interstitial'
+      }]);
+      setTimeout(() => {
+        clearTimeout(adReadyTimeout);
+        console.log('[Rainy] Monetag ad queued');
+        showToast('Monetag ad queued...', 'success');
+      }, 1000);
+    }
+    else {
+      console.log('[Rainy] No Monetag method available, using demo');
+      clearTimeout(adReadyTimeout);
       showFallbackAd();
     }
   } catch (error) {
+    clearTimeout(adReadyTimeout);
     console.error('[Rainy] Error calling Monetag:', error);
     showFallbackAd();
   }
@@ -575,26 +612,48 @@ function showFallbackAd() {
 // Test function for debugging
 function testMonetagFunction() {
   console.log('[Rainy] Testing Monetag function...');
+  console.log('window.monetag:', typeof window.monetag);
   console.log('window.show_10871393:', typeof window.show_10871393);
   console.log('window.monetagQueue:', window.monetagQueue);
   
-  if (typeof window.show_10871393 === 'function') {
-    console.log('Monetag function is available, trying to call...');
+  const container = document.getElementById('monetag-ad-container');
+  container.innerHTML = '';
+  
+  // Try Method 1
+  if (window.monetag && window.monetag.showAd) {
+    console.log('Testing window.monetag.showAd...');
+    window.monetag.showAd({
+      zoneId: parseInt(CONFIG.MONETAG_ZONE),
+      container: container,
+      type: 'interstitial',
+      onReady: () => console.log('TEST: Ad ready'),
+      onComplete: () => console.log('TEST: Ad completed'),
+      onError: (err) => console.error('TEST: Ad error:', err)
+    });
+  }
+  // Try Method 2
+  else if (typeof window.show_10871393 === 'function') {
+    console.log('Testing window.show_10871393...');
     window.show_10871393({
       type: 'inApp',
-      inAppSettings: {
-        frequency: 2,
-        capping: 0.1,
-        interval: 30,
-        timeout: 5,
-        everyPage: false
-      },
-      onReady: () => console.log('Test: Ad ready'),
-      onComplete: () => console.log('Test: Ad completed'),
-      onError: (err) => console.error('Test: Ad error:', err)
+      container: container,
+      onReady: () => console.log('TEST: Ad ready'),
+      onComplete: () => console.log('TEST: Ad completed'),
+      onError: (err) => console.error('TEST: Ad error:', err)
     });
-  } else {
-    console.error('Monetag function not available');
+  }
+  // Try Method 3
+  else if (window.monetagQueue) {
+    console.log('Testing monetagQueue...');
+    window.monetagQueue.push(['showAd', {
+      zoneId: parseInt(CONFIG.MONETAG_ZONE),
+      container: container,
+      type: 'interstitial'
+    }]);
+  }
+  else {
+    console.error('No Monetag method available for testing');
+    container.innerHTML = '<div style="text-align:center;padding:20px;color:#ff6b6b;">No Monetag SDK found</div>';
   }
 }
 

@@ -217,45 +217,33 @@
 
   </div>
 
-  <!-- Monetag SDK - Multiple Fallbacks -->
+  <!-- Monetag SDK - Correct Implementation -->
 <script>
 // Initialize Monetag SDK properly
 window.monetagQueue = window.monetagQueue || [];
-window.show_10871393 = function() {
-  window.monetagQueue.push(arguments);
+window.monetagAsyncInit = function() {
+  console.log('[Rainy] Monetag SDK initialized');
 };
 
-// Load Monetag SDK with fallbacks
+// Load Monetag SDK
 (function() {
-  const urls = [
-    'https://libtl.com/sdk.js?zone=10871393',
-    'https://jsc.adskeeper.co.uk/sdk.js?zone=10871393',
-    'https://a.realsrv.com/sdk.js?zone=10871393'
-  ];
-  
-  let urlIndex = 0;
-  
-  function loadNextUrl() {
-    if (urlIndex >= urls.length) {
-      console.error('[Rainy] All Monetag SDK URLs failed');
-      return;
+  const script = document.createElement('script');
+  script.async = true;
+  script.src = 'https://libtl.com/sdk.js';
+  script.onload = function() {
+    console.log('[Rainy] Monetag SDK loaded successfully');
+    // Initialize the zone
+    if (window.monetag && window.monetag.init) {
+      window.monetag.init({
+        zoneId: 10871393,
+        subId: 'rainyweb3'
+      });
     }
-    
-    var script = document.createElement('script');
-    script.async = true;
-    script.src = urls[urlIndex];
-    script.onload = function() {
-      console.log('[Rainy] Monetag SDK loaded successfully from:', urls[urlIndex]);
-    };
-    script.onerror = function() {
-      console.warn('[Rainy] Failed to load Monetag SDK from:', urls[urlIndex]);
-      urlIndex++;
-      setTimeout(loadNextUrl, 1000);
-    };
-    document.head.appendChild(script);
-  }
-  
-  loadNextUrl();
+  };
+  script.onerror = function() {
+    console.error('[Rainy] Failed to load Monetag SDK');
+  };
+  document.head.appendChild(script);
 })();
 </script>
 
