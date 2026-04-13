@@ -47,7 +47,7 @@ function validateTelegramInitData(initData) {
 }
 
 // POST /api/auth/login
-router.post('/login', (req, res) => {
+router.post('/login', async (req, res) => {
   const { telegram_id, first_name, last_name, username, photo_url, init_data } = req.body;
 
   if (!telegram_id) {
@@ -60,33 +60,33 @@ router.post('/login', (req, res) => {
   }
 
   // Upsert user
-  const existing = db.prepare('SELECT * FROM users WHERE telegram_id = ?').get(String(telegram_id));
+  const existing = await db.get('SELECT * FROM users WHERE telegram_id = ?', [String(telegram_id)]);
 
   if (existing) {
     if (existing.banned) {
       return res.status(403).json({ success: false, message: 'Account banned. Contact support.' });
     }
     // Update last_seen and profile
-    db.prepare(`
+    await db.run(`
       UPDATE users SET first_name=?, last_name=?, username=?, photo_url=?, last_seen=CURRENT_TIMESTAMP
       WHERE telegram_id=?
-    `).run(first_name, last_name, username, photo_url, String(telegram_id));
+    `, [first_name, last_name, username, photo_url, String(telegram_id)]);
   } else {
     // New user
-    db.prepare(`
+    await db.run(`
       INSERT INTO users (telegram_id, first_name, last_name, username, photo_url)
       VALUES (?, ?, ?, ?, ?)
-    `).run(String(telegram_id), first_name, last_name, username, photo_url);
+    `, [String(telegram_id), first_name, last_name, username, photo_url]);
   }
 
-  const user = db.prepare('SELECT * FROM users WHERE telegram_id = ?').get(String(telegram_id));
+  const user = await db.get('SELECT * FROM users WHERE telegram_id = ?', [String(telegram_id)]);
   const token = jwt.sign({ userId: user.id, telegramId: user.telegram_id }, JWT_SECRET, { expiresIn: '7d' });
 
   res.json({ success: true, token });
 });
 
 // Middleware to verify JWT token
-function requireAuth(req, res, next) {
+async function requireAuth(req, res, next) {
   const token = req.headers.authorization?.split(' ')[1];
   
   if (!token) {
@@ -95,7 +95,7 @@ function requireAuth(req, res, next) {
 
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
-    const user = db.prepare('SELECT * FROM users WHERE id = ?').get(decoded.userId);
+    const user = await db.get('SELECT * FROM users WHERE id = ?', [decoded.userId]);
     
     if (!user || user.banned) {
       return res.status(401).json({ success: false, message: 'Invalid token or user banned' });
@@ -109,7 +109,7 @@ function requireAuth(req, res, next) {
 }
 
 // Middleware to verify admin JWT token
-function requireAdmin(req, res, next) {
+async function requireAdmin(req, res, next) {
   const token = req.headers.authorization?.split(' ')[1];
   
   if (!token) {
@@ -118,7 +118,7 @@ function requireAdmin(req, res, next) {
 
   try {
     const decoded = jwt.verify(token, JWT_ADMIN_SECRET);
-    const admin = db.prepare('SELECT * FROM admin_users WHERE id = ?').get(decoded.adminId);
+    const admin = await db.get('SELECT * FROM admin_users WHERE id = ?', [decoded.adminId]);
     
     if (!admin) {
       return res.status(401).json({ success: false, message: 'Invalid admin token' });

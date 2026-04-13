@@ -6,26 +6,26 @@ const auth = require('./auth');
 const { requireAuth } = auth;
 
 // ─── ANTI-FRAUD ENGINE ───────────────────────────────────
-function logFraud(userId, telegramId, eventType, details, ip, ua) {
-  db.prepare(`
+async function logFraud(userId, telegramId, eventType, details, ip, ua) {
+  await db.run(`
     INSERT INTO fraud_logs (user_id, telegram_id, event_type, details, ip_address, user_agent)
     VALUES (?, ?, ?, ?, ?, ?)
-  `).run(userId, String(telegramId), eventType, details, ip, ua);
+  `, [userId, String(telegramId), eventType, details, ip, ua]);
 
   // Increment fraud score
-  db.prepare('UPDATE users SET fraud_score = fraud_score + 1 WHERE id = ?').run(userId);
+  await db.run('UPDATE users SET fraud_score = fraud_score + 1 WHERE id = ?', [userId]);
 
   // Auto-ban if threshold exceeded
-  const autoban = parseInt(getSetting('auto_ban_threshold')) || 5;
-  const user = db.prepare('SELECT fraud_score FROM users WHERE id = ?').get(userId);
+  const autoban = parseInt(await getSetting('auto_ban_threshold')) || 5;
+  const user = await db.get('SELECT fraud_score FROM users WHERE id = ?', [userId]);
   if (user && user.fraud_score >= autoban) {
-    db.prepare("UPDATE users SET banned=1, ban_reason='Auto-banned: fraud threshold exceeded' WHERE id=?").run(userId);
+    await db.run("UPDATE users SET banned=1, ban_reason='Auto-banned: fraud threshold exceeded' WHERE id=?", [userId]);
     console.warn(`[Rainy] User ${telegramId} auto-banned (fraud score: ${user.fraud_score})`);
   }
 }
 
 // POST /api/ads/reward
-router.post('/reward', requireAuth, (req, res) => {
+router.post('/reward', requireAuth, async (req, res) => {
   const user = req.user;
   const { nonce, view_duration, ad_zone } = req.body;
   const ip = req.ip || req.headers['x-forwarded-for'] || 'unknown';
@@ -56,42 +56,55 @@ router.post('/reward', requireAuth, (req, res) => {
   }
 
   // ── 4. COOLDOWN CHECK ────────────────────────────────────
-  const cooldownSecs = parseInt(getSetting('cooldown_seconds')) || 180;
-  if (user.cooldown_until && new Date(user.cooldown_until) > new Date()) {
-    return res.status(429).json({
-      success: false,
-      message: 'Cooldown active',
-      cooldown_until: user.cooldown_until,
-    });
+  const cooldownSecs = parseInt(await getSetting('cooldown_seconds')) || 180;
+  const lastAd = await db.get('SELECT last_ad_at, ads_today, last_ad_reset, cooldown_until FROM users WHERE id = ?', [user.id]);
+  const now = new Date();
+  const cooldownEnd = lastAd?.cooldown_until ? new Date(lastAd.cooldown_until) : null;
+  if (cooldownEnd && now < cooldownEnd) {
+    const remaining = Math.ceil((cooldownEnd - now) / 1000);
+    return res.status(429).json({ success: false, message: `Please wait ${remaining}s`, remaining });
   }
 
-  // ── 5. DAILY LIMIT CHECK ─────────────────────────────────
-  const dailyLimit = parseInt(getSetting('daily_limit')) || 20;
-  const today = new Date().toISOString().slice(0, 10);
-
-  // Reset daily counter if new day
-  if (user.last_ad_reset !== today) {
-    db.prepare('UPDATE users SET ads_today=0, last_ad_reset=? WHERE id=?').run(today, user.id);
+  // Reset daily counter if needed
+  const today = now.toISOString().split('T')[0];
+  if (lastAd?.last_ad_reset !== today) {
+    await db.run('UPDATE users SET ads_today = 0, last_ad_reset = ? WHERE id = ?', [today, user.id]);
     user.ads_today = 0;
   }
 
+  // Check daily limit
+  const dailyLimit = parseInt(await getSetting('daily_ad_limit')) || 20;
   if (user.ads_today >= dailyLimit) {
-    return res.status(429).json({ success: false, message: 'Daily limit reached' });
+    return res.status(429).json({ success: false, message: 'Daily ad limit reached' });
   }
 
-  // ── 6. DUPLICATE IP CHECK (soft — log but don't block) ───
-  const recentFromIP = db.prepare(`
+  // Record transaction
+  await db.run(`
+    INSERT INTO transactions (user_id, type, amount, description, created_at)
+    VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
+  `, [user.id, 'reward', CONFIG.REWARD_PER_AD, `Ad reward - zone ${ad_zone}`]);
+
+  // Update user stats
+  await db.run(`
+    UPDATE users SET balance = balance + ?, total_earned = total_earned + ?, 
+                   ads_today = ads_today + 1, ads_total = ads_total + 1, 
+                   last_ad_at = CURRENT_TIMESTAMP, cooldown_until = datetime('now', '+${CONFIG.COOLDOWN_SECONDS} seconds')
+    WHERE id = ?
+  `, [CONFIG.REWARD_PER_AD, CONFIG.REWARD_PER_AD, user.id]);
+
+  // ── 5. DUPLICATE IP CHECK (soft — log but don't block) ───
+  const recentFromIP = await db.get(`
     SELECT COUNT(*) as cnt FROM transactions
     WHERE ip_address = ? AND created_at > datetime('now', '-10 minutes') AND valid = 1
-  `).get(ip);
+  `, [ip]);
 
   if (recentFromIP && recentFromIP.cnt > 10) {
     logFraud(user.id, user.telegram_id, 'ip_abuse', `IP ${ip} submitted ${recentFromIP.cnt} rewards in 10min`, ip, ua);
     // Note: not blocking, just logging — same IP can mean shared network
   }
 
-  // ── 7. REWARD AMOUNT ─────────────────────────────────────
-  const rewardAmount = parseFloat(getSetting('reward_per_ad')) || 0.50;
+  // ── 6. REWARD AMOUNT ─────────────────────────────────────
+  const rewardAmount = parseFloat(await getSetting('reward_per_ad')) || 0.50;
 
   // ── 8. RECORD NONCE ──────────────────────────────────────
   db.prepare('INSERT INTO used_nonces (nonce, user_id) VALUES (?, ?)').run(nonce, user.id);
