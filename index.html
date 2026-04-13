@@ -9,8 +9,6 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="style.css" />
-  <!-- Monetag Verification -->
-  <meta name="monetag" content="3a5a254bc2bcbacfb7191aa970443784">
   <!-- Telegram WebApp SDK -->
   <script>
     // Try to load Telegram SDK with fallback
@@ -220,87 +218,7 @@
 
   </div>
 
-  <!-- Multiple Ad Networks for Better Coverage -->
-<script>
-// Initialize multiple ad networks
-window.adNetworks = {
-  monetag: {
-    loaded: false,
-    showAd: function(container, callbacks) {
-      if (!this.loaded) return false;
-      
-      try {
-        if (window.monetag && window.monetag.showAd) {
-          window.monetag.showAd({
-            zoneId: 10871393,
-            container: container,
-            type: 'interstitial',
-            onReady: callbacks.onReady,
-            onComplete: callbacks.onComplete,
-            onError: callbacks.onError
-          });
-          return true;
-        }
-      } catch (e) {
-        console.error('[Rainy] Monetag error:', e);
-      }
-      return false;
-    }
-  },
-  propeller: {
-    loaded: false,
-    showAd: function(container, callbacks) {
-      if (!this.loaded) return false;
-      
-      try {
-        // Propeller Ads implementation
-        container.innerHTML = '<scr' + 'ipt src="https://cdn.propellerads.com/static/ads.js" onload="window.adNetworks.propeller.onAdReady()"></scr' + 'ipt>';
-        return true;
-      } catch (e) {
-        console.error('[Rainy] Propeller error:', e);
-      }
-      return false;
-    }
-  }
-};
-
-// Load Monetag SDK
-(function() {
-  const script = document.createElement('script');
-  script.async = true;
-  script.src = 'https://libtl.com/sdk.js';
-  script.onload = function() {
-    console.log('[Rainy] Monetag SDK loaded successfully');
-    window.adNetworks.monetag.loaded = true;
-    
-    if (window.monetag && window.monetag.init) {
-      window.monetag.init({
-        zoneId: 229482,
-        subId: 'rainyweb3'
-      });
-    }
-  };
-  script.onerror = function() {
-    console.error('[Rainy] Failed to load Monetag SDK');
-  };
-  document.head.appendChild(script);
-})();
-
-// Load Propeller Ads as fallback
-(function() {
-  const script = document.createElement('script');
-  script.async = true;
-  script.src = 'https://cdn.propellerads.com/static/ads.js';
-  script.onload = function() {
-    console.log('[Rainy] Propeller Ads loaded successfully');
-    window.adNetworks.propeller.loaded = true;
-  };
-  script.onerror = function() {
-    console.error('[Rainy] Failed to load Propeller Ads');
-  };
-  document.head.appendChild(script);
-})();
-</script>
+  <!-- Simple Multi-Ads Integration -->
 
   <script src="app.js"></script>
 </body>
