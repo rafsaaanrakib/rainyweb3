@@ -232,22 +232,43 @@ async function apiCall(endpoint, method = 'GET', body = null) {
 }
 
 async function loginUser() {
-  const data = await apiCall('/auth/login', 'POST', {
-    telegram_id: state.tgUser.id,
-    first_name: state.tgUser.first_name,
-    last_name: state.tgUser.last_name,
-    username: state.tgUser.username,
-    photo_url: state.tgUser.photo_url,
-    init_data: state.initData,
-  });
+  try {
+    const data = await apiCall('/auth/login', 'POST', {
+      telegram_id: state.tgUser.id,
+      first_name: state.tgUser.first_name,
+      last_name: state.tgUser.last_name,
+      username: state.tgUser.username,
+      photo_url: state.tgUser.photo_url,
+      init_data: state.initData,
+    });
 
-  state.authToken = data.token;
-  localStorage.setItem('rainy_token', data.token);
+    state.authToken = data.token;
+    localStorage.setItem('rainy_token', data.token);
+  } catch (error) {
+    console.log('[Rainy] API not available, using demo mode');
+    // Generate a fake token for demo mode
+    state.authToken = 'demo_token_' + Date.now();
+    localStorage.setItem('rainy_token', state.authToken);
+  }
 }
 
 async function fetchUserData() {
-  const data = await apiCall('/user/me');
-  applyUserData(data);
+  try {
+    const data = await apiCall('/user/me');
+    applyUserData(data);
+  } catch (error) {
+    console.log('[Rainy] API not available, using demo mode');
+    // Set default values for demo mode
+    state.balance = 0;
+    state.earnedToday = 0;
+    state.totalEarned = 0;
+    state.adsWatched = 0;
+    state.adsRemainingToday = CONFIG.DAILY_LIMIT;
+    state.transactions = [];
+    updateBalanceUI();
+    renderTransactions();
+    updateWatchButton();
+  }
 }
 
 function applyUserData(data) {
